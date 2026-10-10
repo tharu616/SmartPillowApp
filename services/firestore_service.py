@@ -71,3 +71,23 @@ def get_height_preset(user_id):
     if doc.exists:
         return doc.to_dict().get("value", 3)
     return 3
+def save_vibration_settings(user_id, settings_data):
+    db.collection("users").document(user_id).collection("settings").document("vibration").set(settings_data)
+
+
+def get_vibration_settings(user_id):
+    doc = (
+        db.collection("users")
+        .document(user_id)
+        .collection("settings")
+        .document("vibration")
+        .get()
+    )
+    if doc.exists:
+        return doc.to_dict()
+    return {
+        "anti_snore_mode": True,
+        "vibration_intensity": 2,
+        "quick_start_mode": True,
+        "partner_safe_alerts": False,
+    }

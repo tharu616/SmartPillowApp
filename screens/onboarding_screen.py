@@ -44,7 +44,7 @@ def onboarding_screen_view(page: ft.Page, show_screen):
                     content="I already have an account",
                     width=260,
                     height=50,
-                    color=WHITE,
+                    color=TEXT_DARK,
                     on_click=lambda e: show_screen("/login"),
                 ),
             ],

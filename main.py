@@ -7,7 +7,10 @@ from screens.trends_screen import trends_screen_view
 from screens.height_control_screen import height_control_screen_view
 from screens.settings_screen import settings_screen_view
 from screens.cleaning_screen import cleaning_screen_view
+from screens.vibration_screen import vibration_screen_view
+from screens.alarm_screen import alarm_screen_view
 from constants.config import BG_COLOR
+from services import esp_service
 
 
 def main(page: ft.Page):
@@ -15,10 +18,16 @@ def main(page: ft.Page):
     page.bgcolor = BG_COLOR
     page.padding = 0
     page.theme_mode = ft.ThemeMode.LIGHT
-    page.window_width = 360
-    page.window_height = 740
+
+    page.window.width = 390
+    page.window.height = 760
+    page.window.min_width = 360
+    page.window.min_height = 640
+
+    current = {"route": "/"}
 
     def show_screen(route):
+        current["route"] = route
         page.clean()
 
         if route == "/":
@@ -37,10 +46,31 @@ def main(page: ft.Page):
             page.add(settings_screen_view(page, show_screen))
         elif route == "/cleaning":
             page.add(cleaning_screen_view(page, show_screen))
+        elif route == "/vibration":
+            page.add(vibration_screen_view(page, show_screen))
+        elif route == "/alarm":
+            page.add(alarm_screen_view(page, show_screen))
         else:
             page.add(onboarding_screen_view(page, show_screen))
 
         page.update()
+
+    # Alarm වදින විට alarm screen එක ඉබේම එනවා, නැවැත්තුවාම ආපහු යනවා
+    def on_alarm_status(connected, res):
+        ringing = bool(connected and res.get("ringing"))
+        try:
+            if ringing and current["route"] != "/alarm":
+                show_screen("/alarm")
+            elif (not ringing) and current["route"] == "/alarm":
+                if getattr(page, "session_user_id", None):
+                    show_screen("/home")
+                else:
+                    show_screen("/login")
+        except Exception as e:
+            print("Alarm screen switch error:", e)
+
+    esp_service.set_listener(on_alarm_status, key="alarm_nav")
+    esp_service.start_heartbeat(3)
 
     show_screen("/")
 
