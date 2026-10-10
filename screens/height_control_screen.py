@@ -1,8 +1,10 @@
 import flet as ft
 from constants.config import *
 from components.bottom_nav import bottom_nav
+from components.ui import card, card_title, page_header, bg_gradient, btn_style
 from services.firestore_service import get_height_preset, save_height_preset
 from services import esp_service
+
 
 INFLATE_STEP_MS = 600     # level එකක් ඉහළට යන්න pump ධාවන කාලය
 DEFLATE_STEP_MS = 600     # level එකක් පහළට යන්න valve විවෘත කාලය
@@ -21,12 +23,25 @@ def height_control_screen_view(page: ft.Page, show_screen):
     status_text = ft.Text("", size=12, color=PRIMARY_COLOR)
 
     height_slider = ft.Slider(
-        min=1,
-        max=5,
-        divisions=4,
-        value=start_level,
-        label="{value}",
+        min=1, max=5, divisions=4, value=start_level, label="{value}",
+        active_color=PRIMARY_COLOR, thumb_color=PRIMARY_DARK,
     )
+
+    pillow_visual = ft.Container(
+        width=180, height=40 + start_level * 16, border_radius=40,
+        gradient=ft.LinearGradient(colors=[ACCENT_COLOR, PRIMARY_COLOR],
+                                   begin=ft.Alignment.TOP_CENTER, end=ft.Alignment.BOTTOM_CENTER),
+        animate=ft.Animation(700, ft.AnimationCurve.EASE_OUT_BACK),
+        alignment=ft.Alignment.CENTER,
+        shadow=ft.BoxShadow(blur_radius=30, color=ft.Colors.with_opacity(0.35, PRIMARY_COLOR),
+                            offset=ft.Offset(0, 12)),
+    )
+    level_text = ft.Text(f"Level {start_level}", size=16, weight=ft.FontWeight.BOLD, color=WHITE)
+    pillow_visual.content = level_text
+
+    def sync_visual(level):
+        pillow_visual.height = 40 + int(level) * 16
+        level_text.value = f"Level {int(level)}"
 
     def set_status(msg):
         status_text.value = msg
@@ -60,9 +75,11 @@ def height_control_screen_view(page: ft.Page, show_screen):
             if res.get("ok"):
                 state["level"] = target
                 height_slider.value = target
+                sync_visual(target)
                 status_text.value = f"Height level {target} set."
             else:
                 height_slider.value = state["level"]
+                sync_visual(state["level"])
                 status_text.value = f"Pillow error: {res.get('error')}"
             page.update()
 
@@ -98,27 +115,61 @@ def height_control_screen_view(page: ft.Page, show_screen):
         controls=[
             ft.Container(
                 expand=True,
-                bgcolor=BG_COLOR,
+                gradient=bg_gradient(),
                 padding=20,
                 content=ft.Column(
+                    scroll=ft.ScrollMode.AUTO,
+                    spacing=14,
                     controls=[
-                        ft.Text("Pillow Height Control", size=24, weight=ft.FontWeight.BOLD, color=TEXT_DARK),
-                        ft.Text("Adjust air pump inflation to change pillow loft", size=12, color=TEXT_LIGHT),
-                        ft.Container(height=20),
-                        height_slider,
-                        ft.Row(
-                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                            controls=[
-                                ft.Button(content="Deflate", on_click=handle_deflate),
-                                ft.Button(content="Save Preset", on_click=handle_save),
-                                ft.Button(content="Inflate", on_click=handle_inflate),
-                            ],
+                        page_header("Pillow Height Control",
+                                    "Adjust air pump inflation to change pillow loft"),
+                        card(
+                            delay=0.15,
+                            content=ft.Column(
+                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                spacing=14,
+                                controls=[
+                                    ft.Container(
+                                        height=150, alignment=ft.Alignment.BOTTOM_CENTER,
+                                        content=pillow_visual,
+                                    ),
+                                    ft.Row(
+                                        controls=[ft.Icon(ft.Icons.UNFOLD_LESS_ROUNDED, size=18, color=TEXT_LIGHT),
+                                                  ft.Container(content=height_slider, expand=True),
+                                                  ft.Icon(ft.Icons.UNFOLD_MORE_ROUNDED, size=18, color=TEXT_LIGHT)],
+                                    ),
+                                ],
+                            ),
                         ),
-                        ft.Container(height=10),
-                        ft.Button(content="Stop", on_click=handle_stop),
-                        ft.Container(height=10),
-                        status_text,
-                    ]
+                        card(
+                            delay=0.3,
+                            content=ft.Column(
+                                spacing=12,
+                                controls=[
+                                    card_title(ft.Icons.AIR_ROUNDED, "Air pump", "Inflate or deflate one level"),
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                        controls=[
+                                            ft.Button(content="Deflate", icon=ft.Icons.REMOVE_CIRCLE_OUTLINE_ROUNDED,
+                                                      on_click=handle_deflate, style=btn_style("#E8EBFF", PRIMARY_DARK)),
+                                            ft.Button(content="Inflate", icon=ft.Icons.ADD_CIRCLE_OUTLINE_ROUNDED,
+                                                      on_click=handle_inflate, style=btn_style(PRIMARY_COLOR)),
+                                        ],
+                                    ),
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                        controls=[
+                                            ft.Button(content="Save Preset", icon=ft.Icons.BOOKMARK_ADD_ROUNDED,
+                                                      on_click=handle_save, style=btn_style(SUCCESS_COLOR)),
+                                            ft.Button(content="Stop", icon=ft.Icons.PAN_TOOL_ROUNDED,
+                                                      on_click=handle_stop, style=btn_style(DANGER_COLOR)),
+                                        ],
+                                    ),
+                                    status_text,
+                                ],
+                            ),
+                        ),
+                    ],
                 ),
             ),
             nav,

@@ -1,41 +1,27 @@
 import flet as ft
 from constants.config import *
+from components.ui import fade_in, btn_style
 from services.auth_service import sign_up_user
 from services.firestore_service import save_user_profile
 
 
+def _field(label, hint, icon, **kw):
+    return ft.TextField(
+        label=label, hint_text=hint, prefix_icon=icon,
+        border_radius=16, filled=True, bgcolor=WHITE,
+        border_color=ft.Colors.TRANSPARENT, focused_border_color=PRIMARY_COLOR,
+        **kw,
+    )
+
+
 def signup_screen_view(page: ft.Page, show_screen):
-    name_field = ft.TextField(
-        label="Full Name",
-        hint_text="Your name",
-        prefix_icon=ft.Icons.PERSON,
-        border_radius=14,
-        filled=True,
-        bgcolor=WHITE,
-    )
+    name_field = _field("Full Name", "Your name", ft.Icons.PERSON_ROUNDED)
+    email_field = _field("Email", "you@example.com", ft.Icons.EMAIL_ROUNDED)
+    password_field = _field("Password", "At least 6 characters", ft.Icons.LOCK_ROUNDED,
+                            password=True, can_reveal_password=True)
 
-    email_field = ft.TextField(
-        label="Email",
-        hint_text="you@example.com",
-        prefix_icon=ft.Icons.EMAIL,
-        border_radius=14,
-        filled=True,
-        bgcolor=WHITE,
-    )
-
-    password_field = ft.TextField(
-        label="Password",
-        hint_text="At least 6 characters",
-        prefix_icon=ft.Icons.LOCK,
-        password=True,
-        can_reveal_password=True,
-        border_radius=14,
-        filled=True,
-        bgcolor=WHITE,
-    )
-
-    error_text = ft.Text("", color=ft.Colors.RED, size=12)
-    loading = ft.ProgressRing(visible=False, width=20, height=20)
+    error_text = ft.Text("", color=DANGER_COLOR, size=12)
+    loading = ft.ProgressRing(visible=False, width=20, height=20, color=PRIMARY_COLOR)
 
     def handle_signup(e):
         error_text.value = ""
@@ -74,51 +60,53 @@ def signup_screen_view(page: ft.Page, show_screen):
 
         show_screen("/home")
 
+    logo = ft.Container(
+        width=72, height=72, border_radius=24,
+        gradient=ft.LinearGradient(colors=[ACCENT_COLOR, PRIMARY_COLOR]),
+        alignment=ft.Alignment.CENTER,
+        shadow=ft.BoxShadow(blur_radius=24, color=ft.Colors.with_opacity(0.35, PRIMARY_COLOR),
+                            offset=ft.Offset(0, 10)),
+        content=ft.Icon(ft.Icons.PERSON_ADD_ALT_1_ROUNDED, size=34, color=WHITE),
+    )
+
     return ft.Container(
         expand=True,
-        bgcolor=BG_COLOR,
-        padding=20,
+        padding=22,
+        gradient=ft.LinearGradient(
+            begin=ft.Alignment.TOP_CENTER, end=ft.Alignment.BOTTOM_CENTER,
+            colors=["#E6E9FF", BG_COLOR, WHITE]),
         content=ft.Column(
+            scroll=ft.ScrollMode.AUTO,
             controls=[
-                ft.IconButton(
-                    icon=ft.Icons.ARROW_BACK,
-                    on_click=lambda e: show_screen("/login"),
-                ),
-                ft.Text("Create Account", size=24, weight=ft.FontWeight.BOLD, color=TEXT_DARK),
-                ft.Text(
-                    "Sign up to start tracking your sleep with Smart Pillow.",
-                    size=13,
-                    color=TEXT_LIGHT,
-                ),
+                ft.IconButton(icon=ft.Icons.ARROW_BACK_IOS_NEW_ROUNDED, icon_size=18,
+                              icon_color=TEXT_DARK, on_click=lambda e: show_screen("/login")),
+                fade_in(logo, 0.05),
+                ft.Container(height=6),
+                fade_in(ft.Text("Create Account", size=28, weight=ft.FontWeight.W_800, color=TEXT_DARK), 0.15),
+                fade_in(ft.Text("Sign up to start tracking your sleep with Smart Pillow.",
+                                size=13, color=TEXT_LIGHT), 0.25),
                 ft.Container(height=20),
-                name_field,
+                fade_in(name_field, 0.35),
                 ft.Container(height=12),
-                email_field,
+                fade_in(email_field, 0.45),
                 ft.Container(height=12),
-                password_field,
+                fade_in(password_field, 0.55),
                 ft.Container(height=8),
                 error_text,
-                ft.Container(height=10),
-                ft.Row(
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    controls=[loading],
-                ),
-                ft.Button(
-                    content="Create Account",
-                    width=320,
-                    height=50,
-                    bgcolor=PRIMARY_COLOR,
-                    color=WHITE,
+                ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[loading]),
+                fade_in(ft.Button(
+                    content="Create Account", icon=ft.Icons.CHECK_CIRCLE_ROUNDED,
+                    width=340, height=54, style=btn_style(PRIMARY_COLOR, WHITE, 18),
                     on_click=handle_signup,
-                ),
+                ), 0.65),
                 ft.Container(height=10),
                 ft.Row(
                     alignment=ft.MainAxisAlignment.CENTER,
                     controls=[
                         ft.Text("Already have an account?", size=12, color=TEXT_LIGHT),
-                        ft.Button(
+                        ft.TextButton(
                             content="Log In",
-                            color=PRIMARY_COLOR,
+                            style=ft.ButtonStyle(color=PRIMARY_COLOR),
                             on_click=lambda e: show_screen("/login"),
                         ),
                     ],

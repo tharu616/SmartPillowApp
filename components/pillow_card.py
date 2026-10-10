@@ -2,6 +2,7 @@ from datetime import datetime
 
 import flet as ft
 from constants.config import *
+from components.ui import card, card_title, btn_style
 from services import esp_service
 from services.firestore_service import save_sleep_session
 
@@ -28,9 +29,19 @@ def pillow_card(page: ft.Page):
         label="Pillow IP",
         value=esp_service.get_ip(),
         dense=True,
+        filled=True,
+        border_radius=14,
+        border_width=0,
+        bgcolor="#F1F3FF",
+        prefix_icon=ft.Icons.WIFI_ROUNDED,
         on_change=lambda e: esp_service.set_ip(e.control.value),
     )
-    session_btn = ft.Button(content="Start sleep session")
+    session_btn = ft.Button(
+        content="Start sleep session",
+        icon=ft.Icons.BEDTIME_ROUNDED,
+        style=btn_style(PRIMARY_COLOR),
+        expand=True,
+    )
     state = {"active": False}
 
     def check(e=None):
@@ -51,22 +62,28 @@ def pillow_card(page: ft.Page):
 
         esp_service.run_async(esp_service.get_status, on_done=done)
 
-    # ESP එකේ session status එක auto update වෙනවා (head detect වුනාම)
+    def set_btn(active):
+        session_btn.icon = ft.Icons.STOP_CIRCLE_ROUNDED if active else ft.Icons.BEDTIME_ROUNDED
+        session_btn.style = btn_style(DANGER_COLOR if active else PRIMARY_COLOR)
+
     def on_status(connected, res):
         if not connected:
             state["active"] = False
             session_btn.content = "Start sleep session"
+            set_btn(False)
             session_text.value = "Pillow not connected"
         elif res.get("session"):
             sec = int(res.get("sessionSec", 0))
             state["active"] = True
             session_btn.content = "Stop & save"
+            set_btn(True)
             session_text.value = (
                 f"Sleeping... {sec // 60}m {sec % 60}s | snores {res.get('snores', 0)}"
             )
         else:
             state["active"] = False
             session_btn.content = "Start sleep session"
+            set_btn(False)
             if res.get("headOn"):
                 session_text.value = "Head detected"
             else:
@@ -84,6 +101,7 @@ def pillow_card(page: ft.Page):
                 if res.get("ok"):
                     state["active"] = True
                     session_btn.content = "Stop & save"
+                    set_btn(True)
                     session_text.value = "Session running..."
                 else:
                     session_text.value = f"Error: {res.get('error')}"
@@ -114,6 +132,7 @@ def pillow_card(page: ft.Page):
                 esp_service.set_last_saved(msg)
                 state["active"] = False
                 session_btn.content = "Start sleep session"
+                set_btn(False)
                 session_text.value = msg
                 page.update()
 
@@ -121,19 +140,32 @@ def pillow_card(page: ft.Page):
 
     session_btn.on_click = toggle_session
 
-    return ft.Container(
-        bgcolor=WHITE,
-        border_radius=16,
-        padding=16,
+    return card(
+        delay=0.25,
         content=ft.Column(
-            spacing=8,
+            spacing=12,
             controls=[
-                ft.Text("Pillow device", size=14, weight=ft.FontWeight.BOLD, color=TEXT_DARK),
+                card_title(ft.Icons.BED_ROUNDED, "Pillow device", "Connect & track your sleep"),
                 ip_field,
-                info,
-                ft.Button(content="Check pillow", on_click=check),
-                session_text,
-                session_btn,
+                ft.Container(
+                    padding=12, border_radius=14, bgcolor="#F7F8FD",
+                    content=ft.Row(
+                        spacing=10,
+                        vertical_alignment=ft.CrossAxisAlignment.START,
+                        controls=[ft.Icon(ft.Icons.MEMORY_ROUNDED, size=18, color=ACCENT_COLOR), info],
+                    ),
+                ),
+                ft.Button(
+                    content="Check pillow",
+                    icon=ft.Icons.SYNC_ROUNDED,
+                    on_click=check,
+                    style=btn_style("#E8EBFF", PRIMARY_DARK),
+                ),
+                ft.Row(
+                    spacing=8,
+                    controls=[ft.Icon(ft.Icons.NIGHTLIGHT_ROUND, size=16, color=PRIMARY_COLOR), session_text],
+                ),
+                ft.Row(controls=[session_btn]),
             ],
         ),
     )
